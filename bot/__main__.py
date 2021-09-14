@@ -9,7 +9,7 @@ from sys import executable
 from telegram import ParseMode
 from telegram.ext import CommandHandler
 from wserver import start_server_async
-from bot import bot, app, dispatcher, updater, botStartTime, IGNORE_PENDING_REQUESTS, IS_VPS, PORT, alive, web
+from bot import bot, app, dispatcher, updater, botStartTime, IGNORE_PENDING_REQUESTS, IS_VPS, PORT, alive, web, OWNER_ID, AUTHORIZED_CHATS
 from bot.helper.ext_utils import fs_utils
 from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.message_utils import *
@@ -179,7 +179,7 @@ def bot_help(update, context):
     else:
         sendMessage(help_string, context.bot, update)
 
-
+'''
 botcmds = [
         (f'{BotCommands.HelpCommand}','Get Detailed Help'),
         (f'{BotCommands.MirrorCommand}', 'Start Mirroring'),
@@ -201,22 +201,28 @@ botcmds = [
         (f'{BotCommands.LogCommand}','Get the Bot Log [owner/sudo only]'),
         (f'{BotCommands.TsHelpCommand}','Get help for Torrent search module')
     ]
-
+'''
 
 def main():
     fs_utils.start_cleanup()
-
     if IS_VPS:
         asyncio.get_event_loop().run_until_complete(start_server_async(PORT))
-
     # Check if the bot is restarting
     if os.path.isfile(".restartmsg"):
         with open(".restartmsg") as f:
             chat_id, msg_id = map(int, f)
         bot.edit_message_text("Restarted successfully!", chat_id, msg_id)
         os.remove(".restartmsg")
-    bot.set_my_commands(botcmds)
-
+    elif OWNER_ID:
+        try:
+            text = "<b>Bot Restarted!</b>"
+            bot.sendMessage(chat_id=OWNER_ID, text=text, parse_mode=ParseMode.HTML)
+            if AUTHORIZED_CHATS:
+                for i in AUTHORIZED_CHATS:
+                    bot.sendMessage(chat_id=i, text=text, parse_mode=ParseMode.HTML)
+        except Exception as e:
+            LOGGER.warning(e)
+    #bot.set_my_commands(botcmds)
     start_handler = CommandHandler(BotCommands.StartCommand, start, run_async=True)
     ping_handler = CommandHandler(BotCommands.PingCommand, ping,
                                   filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
